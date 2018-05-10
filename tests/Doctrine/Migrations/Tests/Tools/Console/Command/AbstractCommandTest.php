@@ -15,6 +15,7 @@ use ReflectionClass;
 use Symfony\Component\Console\Helper\HelperSet;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\Output;
 use function chdir;
 use function getcwd;
@@ -26,15 +27,13 @@ class AbstractCommandTest extends MigrationTestCase
 
     /**
      * Invoke invisible migration configuration getter
-     *
-     * @param mixed $input
-     * @param mixed $configuration
-     * @param bool  $noConnection
-     * @param mixed $helperSet
-     *
      */
-    public function invokeMigrationConfigurationGetter($input, $configuration = null, $noConnection = false, $helperSet = null) : Configuration
-    {
+    public function invokeMigrationConfigurationGetter(
+        InputInterface $input,
+        ?Configuration $configuration = null,
+        bool $noConnection = false,
+        ?HelperSet $helperSet = null
+    ) : Configuration {
         $class  = new ReflectionClass(AbstractCommand::class);
         $method = $class->getMethod('getMigrationConfiguration');
         $method->setAccessible(true);
@@ -162,11 +161,12 @@ class AbstractCommandTest extends MigrationTestCase
             ->setConstructorArgs([[]])
             ->getMock();
 
-        $configuration       = new Configuration($this->getSqliteConnection());
+        $connection          = $this->getSqliteConnection();
+        $configuration       = new Configuration($connection);
         $actualConfiguration = $this->invokeMigrationConfigurationGetter($input, $configuration, true);
 
         self::assertInstanceOf(Configuration::class, $actualConfiguration);
-        self::assertEquals($this->getSqliteConnection(), $actualConfiguration->getConnection());
+        self::assertSame($connection, $actualConfiguration->getConnection());
         self::assertEquals('doctrine_migration_versions', $actualConfiguration->getMigrationsTableName());
         self::assertNull($actualConfiguration->getMigrationsNamespace());
     }
